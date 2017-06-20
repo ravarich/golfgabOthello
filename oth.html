@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Othello</title>
+  <script src="https://code.jquery.com/jquery-2.1.3.min.js"></script>
+  <script src="https://cdn.socket.io/socket.io-1.3.3.js"></script>
+  <script src="https://npmcdn.com/vue/dist/vue.js"></script>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+  <style>
+    .black {
+      background-color: green;
+    }
+
+    .black .circle {
+      opacity: 1;
+      background-color: black;
+    }
+
+    .white {
+      background-color: green;
+    }
+
+    .white .circle {
+      opacity: 1;
+      background-color: white;
+    }
+
+    .green {
+      background-color: green;
+    }
+
+    .suggest1 {
+      background-color: green;
+    }
+
+    .suggest1 .circle {
+      opacity: 1;
+      background-color: #090;
+    }
+
+    .suggest1:hover {
+      background-color: #00cc00;
+    }
+
+    .suggest1:hover .circle {
+      background-color: black;
+    }
+
+    .suggest2 {
+      background-color: green;
+    }
+
+    .suggest2 .circle {
+      opacity: 1;
+      background-color: #090;
+    }
+
+    .suggest2:hover {
+      background-color: #00cc00;
+    }
+
+    .suggest2:hover .circle {
+      background-color: white;
+    }
+
+    .game:hover {
+      background-color: yellow;
+    }
+
+    .circle {
+      opacity: 0;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+    }
+
+    table,
+    th,
+    td {
+      border: 1px solid black;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="app" class="container" >
+    <div v-if="show_login">
+      <h2>LOGIN</h2>
+      <label>Username:</label>
+      <input v-model="userName" class="form-control" placeholder="Enter username">
+      <label>Password:</label>
+      <input type="password" v-model="password" class="form-control" placeholder="Enter password" @keyup.enter="pass_login()">
+      <p></p>
+      <button class="btn btn-primary" @click="pass_login()">login</button>
+      <button class="btn btn-primary" @click="go_register()">register</button>
+    </div>
+
+    <!-- <div v-if="show_login">
+      <p>LOGIN</p>
+      <p>userName : <input type="text" v-model="userName" autofocus></p>
+      <p>password : <input type="text" v-model="password" @keyup.enter="pass_login()"></p>
+      <p><button @click="pass_login()">login</button>or
+      <button @click="go_register()">register</button></p>
+    </div> -->
+
+    <div v-if="show_register">
+      <h2>REGISTER</h2>
+      <label>Username:</label>
+      <input v-model="userName" class="form-control" placeholder="Enter username">
+      <label>Password:</label>
+      <input type="password" v-model="password" class="form-control" placeholder="Enter password">
+      <p></p>
+      <button class="btn btn-primary" @click="register_func()">register</button>
+      <button class="btn btn-primary" @click="show_login = true, show_register = false">back</button>
+    </div>
+
+    <!-- <div v-if="show_register">
+      <p>REGISTER</p>
+      <p>userName : <input type="text" v-model="userName"></p>
+      <p>password : <input type="text" v-model="password"></p>
+      <p>
+        <button @click="register_func()">register</button>
+        <button @click="show_login = true, show_register = false">back</button>
+      </p>
+    </div> -->
+
+
+
+
+    <div v-if="show">
+      <input v-model="userName"><button @click="pass_userName()">ok</button>
+    </div>
+
+    <div v-show="showTable">
+      <p>I'm {{my_turn}}</p>
+      <p>TURN : {{turn}}</p>
+      <table>
+        <tr v-for="(valMain, indexMain) in 8">
+          <td v-for="(valChild, indexChild) in 8" :ref="indexMain+':'+indexChild" @click="pass_click(indexMain,indexChild)" width="50px" height="50px">
+            <div class="circle">
+
+            </div>
+          </td>
+        </tr>
+      </table>
+    </div>
+    <div v-if="show_back">
+      <p><button @click="back_to_menu()">back to menu</button></p>
+    </div>
+    <div v-show="showRank">
+      <p>RANKING</p>
+      <table>
+        <thead>
+          <tr>
+            <th width="25%">Name</th>
+            <th width="25%">win</th>
+            <th width="25%">lose</th>
+            <th width="25%">score</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="msg in arr_msg">
+            <td>{{msg.userName}}</td>
+            <td>{{msg.win}}</td>
+            <td>{{msg.lose}}</td>
+            <td>{{msg.score}}</td>
+          </tr>
+        </tbody>
+      </table>
+      <p><button @click="showRank = false, show_game = true">back</button></p>
+    </div>
+    <div v-if="show_score">
+      <p><button @click="back_to_menu()">back to menu</button></p>
+      <p>Winner is {{winner}} </p>
+      <p>black'score : {{score_black}}</p>
+      <p>white's score : {{score_white}}</p>
+    </div>
+    <div v-if="show_game">
+      <p>>> hi {{userName}} <button @click="pass_logout()">logout</button></p>
+      <p>------------------------------------------------------------------------------</p>
+      <h1>SELECT GAME</h1>
+      <p class="game" @click="pass_start">Othello</p>
+      <p class="game">game2</p>
+      <p class="game">game3</p>
+      <p><button @click="pass_ranking()">ranking</button></p>
+    </div>
+    <div v-if="show_wait">
+      <h1>WAIT FOR OTHER PLAYER</h1>
+      <p><button @click="pass_ex_wait()">back</button></p>
+    </div>
+
+  </div>
+</body>
+
+</html>
+
+<script>
+  var socket = io();
+  new Vue({
+    el: '#app',
+    data: {
+      show: false,
+      showTable: false,
+      turn: '',
+      score_black: 0,
+      score_white: 0,
+      winner: '',
+      show_score: false,
+      show_login: true,
+      show_register: false,
+      userName: '',
+      password: '',
+      arr_msg: [],
+      showRank: false,
+      show_game: false,
+      show_wait: false,
+      show_back: false,
+      time: 0,
+      my_turn: ''
+
+    },
+    mounted() {
+      this.check_login();
+      var _this = this;
+      socket.on('table_socket', function(data, turn_color1, user_turn) {
+        _this.render_func(data, turn_color1, user_turn);
+      });
+      socket.on('winner_socket', function(score_black, score_white, user_winner) {
+        _this.show_winner(score_black, score_white, user_winner);
+      });
+      socket.on('playAgain_socket', function(turn) {
+        _this.show_score = false;
+      });
+      socket.on('login_socket', function(login, userName) {
+        //console.log(login, userName);
+        _this.login_func(login, userName);
+      });
+      socket.on('result_socket', function(result) {
+        _this.show_ranking(result);
+        //console.log(result);
+      });
+      socket.on('start_socket', function(userName, data) {
+        console.log(data);
+        _this.start_func(userName, data);
+      });
+      socket.on('start2_socket', function(arr_user) {
+        _this.start2_func(arr_user);
+      });
+      socket.on('check_regis_socket', function(msg, userName) {
+        _this.check_regis_func(msg, userName);
+      });
+      socket.on('ex_wait_socket', function(userName) {
+        _this.ex_wait(userName);
+      });
+      socket.on('logout_socket', function(userName, time) {
+        _this.logout_func(userName, time);
+      });
+    },
+    methods: {
+      pass_ranking() {
+        socket.emit('result_socket', this.userName);
+        this.show_game = false;
+        this.showRank = true;
+      },
+      pass_ex_wait() {
+        socket.emit('ex_wait_socket', this.userName);
+      },
+      ex_wait(userName) {
+        if (userName == this.userName) {
+          this.show_game = true;
+          this.show_wait = false;
+        }
+      },
+      check_regis_func(msg, userName) {
+        if (userName == this.userName) {
+          if (msg == 'have same userName') {
+            alert(msg);
+          }
+          if (msg == 'regis success') {
+            alert(msg);
+            this.show_register = false;
+            this.pass_login();
+          }
+        }
+      },
+      pass_logout() {
+        socket.emit('logout_socket', this.userName, 0);
+      },
+      logout_func(userName, time) {
+        if (this.userName == userName && time != this.time) {
+          this.userName = '';
+          this.password = '';
+          localStorage.clear();
+          this.show_game = false;
+          this.show_login = true;
+        }
+      },
+      check_login() {
+        var status = localStorage.getItem('status');
+        if (status == 1) {
+          console.log('xxx');
+          this.userName = localStorage.getItem('userName');
+          this.password = localStorage.getItem('password');
+          this.pass_login();
+        }
+      },
+      back_to_menu() {
+        this.show_game = true;
+        this.showTable = false;
+        this.show_score = false;
+        this.show_back = false;
+      },
+      start2_func(arr_user) {
+        if (arr_user[0] == this.userName || arr_user[1] == this.userName) {
+          this.showTable = true;
+          this.show_game = false;
+          this.show_wait = false;
+        }
+      },
+      start_func(userName, data) {
+        if (userName == this.userName) {
+          if (data < 2) {
+            this.my_turn = 'back';
+            this.show_wait = true;
+            this.show_game = false;
+          }
+          if (data == 2) {
+            this.my_turn = 'white';
+            socket.emit('start2_socket', 'x');
+          }
+          if (data > 2) {
+            if (confirm("room empty Do you want to spectate!") == true) {
+              this.my_turn = 'spectator';
+              this.showTable = true;
+              this.show_game = false;
+              this.show_back = true;
+            } else {
+
+            }
+          }
+        }
+      },
+      pass_start() {
+        socket.emit('start_socket', this.userName);
+      },
+      show_ranking(result) {
+        this.arr_msg = result
+        //console.log(this.arr_msg);
+      },
+      pass_playAgain() {
+        socket.emit('playAgain_socket', this.userName);
+      },
+      show_winner(score_black, score_white, user_winner) {
+        //alert('winner is ' + user_winner + ' score black : ' + score_black + ' score_white : ' + score_white);
+        this.score_black = score_black;
+        this.score_white = score_white;
+        this.winner = user_winner;
+        this.show_score = true;
+      },
+      pass_userName() {
+        socket.emit('userName_socket', this.userName);
+        this.show = !this.show;
+        this.showTable = !this.showTable
+      },
+      pass_click(i, j) {
+        //console.log('pass_click');
+        socket.emit('click_socket', i, j, this.userName);
+      },
+      render_func(data, turn_color1, user_turn) {
+        this.turn = turn_color1;
+        for (var i = 0; i < 8; i++) {
+          for (var j = 0; j < 8; j++) {
+            if (data[i][j] == 'suggest1' && user_turn != this.userName) {
+              data[i][j] = 'green';
+            }
+            if (data[i][j] == 'suggest2' && user_turn != this.userName) {
+              data[i][j] = 'green';
+            }
+            this.$refs[i + ":" + j][0].className = data[i][j];
+          }
+        }
+      },
+      go_register() {
+        this.show_login = false;
+        this.show_register = true;
+        this.userName = '';
+        this.password = '';
+        //render_func();
+      },
+      register_func() {
+        socket.emit('register_socket', this.userName, this.password);
+        //this.show_register = false;
+        //this.show_login = true;
+        //this.userName = '';
+        //this.password = '';
+      },
+      pass_login() {
+        this.time = Date.now();
+        socket.emit('login_socket', this.userName, this.password, this.time);
+      },
+      login_func(login, userName) {
+        if (userName == this.userName) {
+          if (login == 'incorrect') {
+            alert(login);
+          }
+          if (login == 'correct') {
+            this.show_game = true;
+            this.show_login = false;
+            localStorage.setItem('status', 1);
+            localStorage.setItem('userName', this.userName);
+            localStorage.setItem('password', this.password);
+            localStorage.setItem('time', this.time);
+          }
+        }
+      }
+
+
+
+
+
+    }
+    //don't delete
+  });
+</script>

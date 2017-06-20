@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>template</title>
+  <script src="https://npmcdn.com/vue/dist/vue.js"></script>
+  <style>
+
+  </style>
+</head>
+
+<body>
+  <div id="app">
+    <input v-model="msg"><button @click="save_func()">save</button><button @click="get_func()">get</button>
+  </div>
+</body>
+
+</html>
+
+<script>
+
+
+  new Vue({
+    el: '#app',
+    data: {
+      msg: 0
+    },
+    mounted() {
+      this.msg = Date.now();
+      console.log(typeof this.msg);
+    },
+    methods: {
+      save_func() {
+        var bcrypt = require('bcryptjs');
+        bcrypt.genSalt(10, function(err, salt) {
+          bcrypt.hash(this.msg, salt, function(err, hash) {
+            localStorage.setItem(hash, this.msg);
+          });
+        });
+      },
+      get_func() {
+        var x = localStorage.getItem("user2");
+        if (x == 'golfgolf') {
+          console.log('yes');
+        } else {
+          console.log('no');
+        }
+      }
+
+    }
+  });
+</script>
