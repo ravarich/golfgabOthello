@@ -220,70 +220,65 @@ function pass_result() {
 function register_func(userName, password) {
   MongoClient.connect(url, function(err, db) {
     if (err) throw err;
-    db.collection("user").find().toArray(function(err, result) {
-      //console.log(result)
-      for (var i = 0; i < result.length ; i++) {
-        if (userName == result[i].userName) {
-          io.emit('check_regis_socket', 'have same userName' , userName);
-
-          break;
-        }
-        if (i == result.length-1) {
-          const hash = crypto.createHmac('sha256', password)
-            .update('I love cupcakes')
-            .digest('hex');
-
-          var insert = {
-            userName: userName,
-            password: hash,
-            win: 0,
-            lose: 0,
-            score: 0
-          };
-          db.collection("user").insertOne(insert, function(err, res) {
-            if (err) throw err;
-            console.log("1 record inserted");
-            db.close();
-            io.emit('check_regis_socket', 'regis success' , userName);
-          });
-        }
+    var qry = {
+      userName: userName
+    }
+    db.collection("user").find(qry).toArray(function(err, result) {
+      console.log(result);
+      if (result == '') {
+        const hash = crypto.createHmac('sha256', password)
+          .update('I love cupcakes')
+          .digest('hex');
+        var insert = {
+          userName: userName,
+          password: hash,
+          win: 0,
+          lose: 0,
+          score: 0
+        };
+        db.collection("user").insertOne(insert, function(err, res) {
+          if (err) throw err;
+          console.log("1 record inserted");
+          db.close();
+          io.emit('check_regis_socket', 'regis success', userName);
+        });
+      } else {
+        io.emit('check_regis_socket', 'have same userName', userName);
       }
       db.close();
     });
-
   });
-
-
-
 }
 
-// function login_func(userName, password) {
+// function register_func(userName, password) {
 //   MongoClient.connect(url, function(err, db) {
 //     if (err) throw err;
-//     var qry = {
-//       'userName': userName
-//     }
-//     db.collection("user").findOne(qry, function(err, result) {
-//       console.log(result)
-//
-//
-//
-//       var login = '';
-//       const hash = crypto.createHmac('sha256', password)
-//         .update('I love cupcakes')
-//         .digest('hex');
-//       //console.log(hash);
-//
-//       if (hash == result.password) {
-//         console.log('correct');
-//         login = 'correct';
-//         io.emit('login_socket', login, userName);
-//       } else {
-//         console.log('incorrect');
-//         login = 'incorrect';
-//         io.emit('login_socket', login, userName);
+//     db.collection("user").find().toArray(function(err, result) {
+//       //console.log(result)
+//       for (var i = 0; i < result.length ; i++) {
+//         if (userName == result[i].userName) {
+//           io.emit('check_regis_socket', 'have same userName' , userName);
+//           break;
+//         }
+//         if (i == result.length-1) {
+//           const hash = crypto.createHmac('sha256', password)
+//             .update('I love cupcakes')
+//             .digest('hex');
+//           var insert = {
+//             userName: userName,
+//             password: hash,
+//             win: 0,
+//             lose: 0,
+//             score: 0
+//           };
+//           db.collection("user").insertOne(insert, function(err, res) {
+//             if (err) throw err;
+//             console.log("1 record inserted");
+//             db.close();
+//             io.emit('check_regis_socket', 'regis success' , userName);
+//           });
+//         }
 //       }
-//
 //       db.close();
 //     });
 //   });
@@ -292,32 +287,65 @@ function register_func(userName, password) {
 function login_func(userName, password) {
   MongoClient.connect(url, function(err, db) {
     if (err) throw err;
-    db.collection("user").find().toArray(function(err, result) {
-      //console.log(result)
-      var login = '';
-      const hash = crypto.createHmac('sha256', password)
-        .update('I love cupcakes')
-        .digest('hex');
-      for (var i = 0; i < result.length ; i++) {
-        if (userName == result[i].userName) {
-          if (hash == result[i].password) {
-            console.log('correct');
-            login = 'correct';
-            io.emit('login_socket', login, userName);
-
-            break;
-          }
-        }
-        if (i == result.length-1) {
+    var qry = {
+      'userName': userName
+    }
+    var login = '';
+    const hash = crypto.createHmac('sha256', password)
+      .update('I love cupcakes')
+      .digest('hex');
+    db.collection("user").findOne(qry, function(err, result) {
+      if (err) throw err;
+      if (result == null) {
+        console.log('incorrect');
+        login = 'incorrect';
+        io.emit('login_socket', login, userName);
+      }else {
+        if (hash == result.password) {
+          console.log('correct');
+          login = 'correct';
+          io.emit('login_socket', login, userName);
+        } else {
           console.log('incorrect');
           login = 'incorrect';
           io.emit('login_socket', login, userName);
         }
       }
+
       db.close();
     });
   });
 }
+
+// function login_func(userName, password) {
+//   MongoClient.connect(url, function(err, db) {
+//     if (err) throw err;
+//     db.collection("user").find().toArray(function(err, result) {
+//       //console.log(result)
+//       var login = '';
+//       const hash = crypto.createHmac('sha256', password)
+//         .update('I love cupcakes')
+//         .digest('hex');
+//       for (var i = 0; i < result.length; i++) {
+//         if (userName == result[i].userName) {
+//           if (hash == result[i].password) {
+//             console.log('correct');
+//             login = 'correct';
+//             io.emit('login_socket', login, userName);
+//
+//             break;
+//           }
+//         }
+//         if (i == result.length - 1) {
+//           console.log('incorrect');
+//           login = 'incorrect';
+//           io.emit('login_socket', login, userName);
+//         }
+//       }
+//       db.close();
+//     });
+//   });
+// }
 
 //------------------------------------------------------------------------------PLAY------------------------------------------------------------------------------
 

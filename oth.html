@@ -80,13 +80,13 @@
     table,
     th,
     td {
-      border: 1px solid black;
+      border: 1px solid white;
     }
   </style>
 </head>
 
 <body>
-  <div id="app" class="container" >
+  <div id="app" class="container">
     <div v-if="show_login">
       <h2>LOGIN</h2>
       <label>Username:</label>
@@ -150,28 +150,6 @@
     <div v-if="show_back">
       <p><button @click="back_to_menu()">back to menu</button></p>
     </div>
-    <div v-show="showRank">
-      <p>RANKING</p>
-      <table>
-        <thead>
-          <tr>
-            <th width="25%">Name</th>
-            <th width="25%">win</th>
-            <th width="25%">lose</th>
-            <th width="25%">score</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="msg in arr_msg">
-            <td>{{msg.userName}}</td>
-            <td>{{msg.win}}</td>
-            <td>{{msg.lose}}</td>
-            <td>{{msg.score}}</td>
-          </tr>
-        </tbody>
-      </table>
-      <p><button @click="showRank = false, show_game = true">back</button></p>
-    </div>
     <div v-if="show_score">
       <p><button @click="back_to_menu()">back to menu</button></p>
       <p>Winner is {{winner}} </p>
@@ -179,17 +157,44 @@
       <p>white's score : {{score_white}}</p>
     </div>
     <div v-if="show_game">
-      <p>>> hi {{userName}} <button @click="pass_logout()">logout</button></p>
-      <p>------------------------------------------------------------------------------</p>
-      <h1>SELECT GAME</h1>
+      <div class="btn-group btn-group-justified">
+        <a href="#" class="btn btn-primary" @click="pass_ex_wait()">Ranking</a>
+        <a href="#" class="btn btn-primary" @click="pass_start">JoinGame</a>
+        <a href="#" class="btn btn-primary" @click="pass_logout()">Logout</a>
+      </div>
+      <div v-if="show_wait">
+        <h2>WAIT FOR OTHER PLAYER</h2>
+        <!-- <p><button @click="pass_ex_wait()">back</button></p> -->
+      </div>
+      <div v-show="showRank">
+        <h2>Ranking</h2>
+        <table class="table table-hover">
+          <thead>
+            <tr>
+              <th width="25%">Name</th>
+              <th width="25%">win</th>
+              <th width="25%">lose</th>
+              <th width="25%">score</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="msg in arr_msg">
+              <td>{{msg.userName}}</td>
+              <td>{{msg.win}}</td>
+              <td>{{msg.lose}}</td>
+              <td>{{msg.score}}</td>
+            </tr>
+          </tbody>
+        </table>
+        <!-- <p><button @click="showRank = false, show_game = true">back</button></p> -->
+      </div>
+      <!-- <p>>> hi {{userName}} <button @click="pass_logout()">logout</button></p>
+      <p>------------------------------------------------------------------------------</p> -->
+      <!-- <h1>SELECT GAME</h1>
       <p class="game" @click="pass_start">Othello</p>
       <p class="game">game2</p>
       <p class="game">game3</p>
-      <p><button @click="pass_ranking()">ranking</button></p>
-    </div>
-    <div v-if="show_wait">
-      <h1>WAIT FOR OTHER PLAYER</h1>
-      <p><button @click="pass_ex_wait()">back</button></p>
+      <p><button @click="pass_ranking()">ranking</button></p> -->
     </div>
 
   </div>
@@ -262,15 +267,17 @@
     methods: {
       pass_ranking() {
         socket.emit('result_socket', this.userName);
-        this.show_game = false;
-        this.showRank = true;
+        //this.show_game = false;
+        //this.showRank = true;
       },
       pass_ex_wait() {
+        this.pass_ranking();
         socket.emit('ex_wait_socket', this.userName);
       },
       ex_wait(userName) {
         if (userName == this.userName) {
           this.show_game = true;
+          this.showRank = true;
           this.show_wait = false;
         }
       },
@@ -323,9 +330,10 @@
       start_func(userName, data) {
         if (userName == this.userName) {
           if (data < 2) {
-            this.my_turn = 'back';
+            this.my_turn = 'black';
             this.show_wait = true;
-            this.show_game = false;
+            this.showRank = false;
+            //this.show_game = false;
           }
           if (data == 2) {
             this.my_turn = 'white';
@@ -408,6 +416,7 @@
           }
           if (login == 'correct') {
             this.show_game = true;
+            this.showRank = true;
             this.show_login = false;
             localStorage.setItem('status', 1);
             localStorage.setItem('userName', this.userName);
