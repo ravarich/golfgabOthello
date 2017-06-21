@@ -16,7 +16,10 @@
 
     .black .circle {
       opacity: 1;
-      background-color: black;
+      background-image: url('/stone_black.png');
+      -webkit-background-size: 50px 50px;
+      background-size: 50px 50px;
+      background-repeat: no-repeat;
     }
 
     .white {
@@ -25,7 +28,10 @@
 
     .white .circle {
       opacity: 1;
-      background-color: white;
+      background-image: url('/stone_white.png');
+      -webkit-background-size: 50px 50px;
+      background-size: 50px 50px;
+      background-repeat: no-repeat;
     }
 
     .green {
@@ -42,11 +48,14 @@
     }
 
     .suggest1:hover {
-      background-color: #00cc00;
+      /*background-color: #00cc00;*/
     }
 
     .suggest1:hover .circle {
-      background-color: black;
+      background-image: url('/stone_black.png');
+      -webkit-background-size: 50px 50px;
+      background-size: 50px 50px;
+      background-repeat: no-repeat;
     }
 
     .suggest2 {
@@ -59,11 +68,14 @@
     }
 
     .suggest2:hover {
-      background-color: #00cc00;
+      /*background-color: #00cc00;*/
     }
 
     .suggest2:hover .circle {
-      background-color: white;
+      background-image: url('/stone_white.png');
+      -webkit-background-size: 50px 50px;
+      background-size: 50px 50px;
+      background-repeat: no-repeat;
     }
 
     .game:hover {
@@ -160,7 +172,7 @@
     </div>
     <div v-if="show_wait">
       <h2>WAIT FOR OTHER PLAYER</h2>
-      <p><button  @click="pass_ex_wait()" class="btn btn-primary">back</button></p>
+      <p><button @click="pass_ex_wait()" class="btn btn-primary">back</button></p>
     </div>
     <div v-if="show_game">
       <div class="btn-group btn-group-justified">
@@ -356,8 +368,8 @@
         }
       },
       pass_start() {
-          this.count_join++;
-          socket.emit('start_socket', this.userName);
+        this.count_join++;
+        socket.emit('start_socket', this.userName);
       },
       show_ranking(result) {
         this.arr_msg = result

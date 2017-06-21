@@ -5,6 +5,8 @@ var io = require('socket.io').listen(server);
 crypto = require('crypto');
 var xx = '1234';
 
+app.use(express.static('assets'))
+
 
 users = [];
 connections = [];
