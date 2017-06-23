@@ -142,9 +142,7 @@
 
 
 
-    <div v-if="show">
-      <input v-model="userName"><button @click="pass_userName()">ok</button>
-    </div>
+
 
     <div v-show="showTable">
       <h2>OTHELLO</h2>
@@ -167,7 +165,7 @@
         <p>white's score : {{score_white}}</p>
       </div>
       <div v-if="show_back">
-        <p><button @click="back_to_menu()" class="btn btn-primary">back to menu</button></p>
+        <p><button @click="leave_room()" class="btn btn-primary">back to menu</button></p>
       </div>
     </div>
     <div v-if="show_wait">
@@ -177,8 +175,17 @@
     <div v-if="show_game">
       <div class="btn-group btn-group-justified">
         <a href="#" class="btn btn-primary" @click="pass_ranking()">Ranking</a>
-        <a href="#" class="btn btn-primary" @click="pass_start">JoinGame</a>
+        <a href="#" class="btn btn-primary" @click="open_show_room">JoinGame</a>
         <a href="#" class="btn btn-primary" @click="pass_logout()">Logout</a>
+      </div>
+      <div v-if="show_room">
+        <h2>ROOM</h2>
+        <div v-for="(room, i) in arr_room" class="list-group">
+          <a class="list-group-item" @click="join_room(i)">{{room.room}}({{room.count}}/2)</a>
+        </div>
+        <hr>
+        <input v-model="room_name" class="form-control">
+        <button class="btn btn-default" @click="create_room()">create room</button>
       </div>
       <div v-show="showRank">
         <h2>Ranking</h2>
@@ -209,6 +216,10 @@
       <p class="game">game3</p>
       <p><button @click="pass_ranking()">ranking</button></p> -->
     </div>
+    <div v-if="show_myRoom">
+      <h2>MY ROOM</h2>
+      <button class="btn btn-default" @click="leave_room()">leave room</button>
+    </div>
 
   </div>
 </body>
@@ -220,7 +231,7 @@
   new Vue({
     el: '#app',
     data: {
-      show: false,
+
       showTable: false,
       turn: '',
       score_black: 0,
@@ -238,20 +249,42 @@
       show_back: false,
       time: 0,
       my_turn: '',
+      arr_room: [],
+      show_room: false,
+      room_name: '',
+      show_myRoom : false,
 
 
     },
     mounted() {
-      this.check_login();
       var _this = this;
-      socket.on('table_socket', function(data, turn_color1, user_turn) {
-        _this.render_func(data, turn_color1, user_turn);
+      //room
+      this.get_room();
+      socket.on('get_room_socket', function(arr_room) {
+        _this.arr_room = arr_room;
       });
-      socket.on('winner_socket', function(score_black, score_white, user_winner) {
-        _this.show_winner(score_black, score_white, user_winner);
+
+      //new before create room
+      socket.on('start_game_socket', function() {
+        _this.start_game();
       });
-      socket.on('playAgain_socket', function(turn) {
-        _this.show_score = false;
+
+
+
+
+
+
+
+
+
+      this.check_login();
+      socket.on('table_socket', function(table_state, turn) {
+        console.log('render si wa ai sus');
+        console.log(table_state);
+        _this.render_func(table_state, turn);
+      });
+      socket.on('winner_socket', function(win) {
+        _this.show_winner(win);
       });
       socket.on('login_socket', function(login, userName) {
         //console.log(login, userName);
@@ -278,10 +311,96 @@
         _this.logout_func(userName, time);
       });
     },
+
+
+
+
+
+
+
+
+
     methods: {
+      //room
+      leave_room() {
+        socket.emit('leave_room_socket', this.room_name);
+        this.get_room();
+        this.show_game = true;
+        this.showTable = false;
+        this.show_score = false;
+        this.show_back = false;
+        this.show_room = true;
+        this.show_myRoom = false;
+        this.room_name = '';
+        this.my_turn = '';
+
+      },
+      join_room(i) {
+        if (this.arr_room[i].count == 1) {
+          this.room_name = this.arr_room[i].room;
+          socket.emit('join_room_socket', this.room_name, this.userName);
+          this.get_room();
+          socket.emit('start_game_socket',this.room_name);
+          this.my_turn = 'white';
+
+        }
+        if(this.arr_room[i].count >= 2){
+          if (confirm("room empty Do you want to spectate!") == true) {
+            this.room_name = this.arr_room[i].room;
+            socket.emit('join_room_socket', this.room_name, this.userName);
+            this.get_room();
+            this.show_game = false;
+            this.showTable = true;
+            this.show_back = true;
+          } else {
+
+          }
+        }
+      },
+      create_room() {
+        socket.emit('create_room_socket', this.room_name, this.userName);
+        this.get_room();
+        this.show_game = false;
+        this.show_room = false;
+        this.show_myRoom = true;
+        this.my_turn = 'black';
+      },
+      get_room() {
+        socket.emit('get_room_socket');
+      },
+      open_show_room() {
+        this.show_room = true;
+        this.showRank = false;
+      },
+
+
+
+
+      //new before create room
+      start_game(){
+        this.show_game = false;
+        this.showTable = true;
+      },
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      //login register
       pass_ranking() {
         socket.emit('result_socket', this.userName);
         //this.show_game = false;
+        this.show_room = false;
         this.showRank = true;
       },
       pass_ex_wait() {
@@ -323,19 +442,12 @@
       check_login() {
         var status = localStorage.getItem('status');
         if (status == 1) {
-          console.log('xxx');
           this.userName = localStorage.getItem('userName');
           this.password = localStorage.getItem('password');
           this.pass_login();
         }
       },
-      back_to_menu() {
 
-        this.show_game = true;
-        this.showTable = false;
-        this.show_score = false;
-        this.show_back = false;
-      },
       start2_func(arr_user) {
         if (arr_user[0] == this.userName || arr_user[1] == this.userName) {
           this.showTable = true;
@@ -368,7 +480,6 @@
         }
       },
       pass_start() {
-        this.count_join++;
         socket.emit('start_socket', this.userName);
       },
       show_ranking(result) {
@@ -378,34 +489,43 @@
       pass_playAgain() {
         socket.emit('playAgain_socket', this.userName);
       },
-      show_winner(score_black, score_white, user_winner) {
-        //alert('winner is ' + user_winner + ' score black : ' + score_black + ' score_white : ' + score_white);
-        this.score_black = score_black;
-        this.score_white = score_white;
-        this.winner = user_winner;
+      show_winner(win) {
+        this.score_black = win.score_black;
+        this.score_white = win.score_white;
+        this.winner = win.winner;
         this.show_score = true;
         this.show_back = true;
       },
-      pass_userName() {
-        socket.emit('userName_socket', this.userName);
-        this.show = !this.show;
-        this.showTable = !this.showTable
-      },
+
+
+
+
+
+
+
+
       pass_click(i, j) {
         //console.log('pass_click');
-        socket.emit('click_socket', i, j, this.userName);
+        socket.emit('click_socket', this.room_name, this.my_turn, i, j,);
       },
-      render_func(data, turn_color1, user_turn) {
-        this.turn = turn_color1;
+      render_func(table_state, turn) {
+        if (turn == true) {
+          var server_turn = 'black'
+          this.turn = 'black'
+        }
+        if (turn == false) {
+          var server_turn = 'white'
+          this.turn = 'white'
+        }
         for (var i = 0; i < 8; i++) {
           for (var j = 0; j < 8; j++) {
-            if (data[i][j] == 'suggest1' && user_turn != this.userName) {
-              data[i][j] = 'green';
+            if (table_state[i][j] == 'suggest1' && server_turn != this.my_turn) {
+              table_state[i][j] = 'green';
             }
-            if (data[i][j] == 'suggest2' && user_turn != this.userName) {
-              data[i][j] = 'green';
+            if (table_state[i][j] == 'suggest2' && server_turn != this.my_turn) {
+              table_state[i][j] = 'green';
             }
-            this.$refs[i + ":" + j][0].className = data[i][j];
+            this.$refs[i + ":" + j][0].className = table_state[i][j];
           }
         }
       },
