@@ -146,8 +146,9 @@
 
     <div v-show="showTable">
       <h2>OTHELLO</h2>
-      <!-- <p>I'm {{my_turn}}</p> -->
-      <!-- <p>TURN : {{turn}}</p> -->
+      <div v-show='show_time'>
+        <p><h2>Wait for another player reconnect in : {{time}}<h2></p>
+      </div>
       <h3>TURN : {{turn}}</h3>
       <table>
         <tr v-for="(valMain, indexMain) in 8">
@@ -185,7 +186,7 @@
         </div>
         <hr>
         <input v-model="room_name" class="form-control">
-        <button class="btn btn-default" @click="create_room()">create room</button>
+        <button class="btn btn-default" @click="pass_create_room()">create room</button>
       </div>
       <div v-show="showRank">
         <h2>Ranking</h2>
@@ -252,7 +253,9 @@
       arr_room: [],
       show_room: false,
       room_name: '',
-      show_myRoom : false,
+      show_myRoom: false,
+      time: 0,
+      show_time: false,
 
 
     },
@@ -268,8 +271,24 @@
       socket.on('start_game_socket', function() {
         _this.start_game();
       });
+      socket.on('create_room_socket', function(data, userName) {
+        if (userName == _this.userName) {
+          if (data == 'yes') {
+            _this.create_room();
+          } else {
+            alert('this room name is already used.');
+            _this.room_name = '';
+          }
+        }
+      });
+      socket.on('discon_socket', function(userName) {
 
-
+        _this.discon_func(userName);
+      });
+      socket.on('reconnect_socket', function() {
+        _this.show_time = false;
+        _this.time = -1;
+      });
 
 
 
@@ -279,8 +298,6 @@
 
       this.check_login();
       socket.on('table_socket', function(table_state, turn) {
-        console.log('render si wa ai sus');
-        console.log(table_state);
         _this.render_func(table_state, turn);
       });
       socket.on('winner_socket', function(win) {
@@ -310,6 +327,7 @@
       socket.on('logout_socket', function(userName, time) {
         _this.logout_func(userName, time);
       });
+
     },
 
 
@@ -333,32 +351,55 @@
         this.show_myRoom = false;
         this.room_name = '';
         this.my_turn = '';
+        this.show_time = false;
 
       },
       join_room(i) {
-        if (this.arr_room[i].count == 1) {
+        if (this.arr_room[i].status == '') {
           this.room_name = this.arr_room[i].room;
           socket.emit('join_room_socket', this.room_name, this.userName);
           this.get_room();
-          socket.emit('start_game_socket',this.room_name);
+          socket.emit('start_game_socket', this.room_name);
           this.my_turn = 'white';
-
-        }
-        if(this.arr_room[i].count >= 2){
-          if (confirm("room empty Do you want to spectate!") == true) {
+        } else {
+          if (this.arr_room[i].user1 == this.userName) {
             this.room_name = this.arr_room[i].room;
             socket.emit('join_room_socket', this.room_name, this.userName);
             this.get_room();
+            socket.emit('start_game_socket', this.room_name);
+            this.my_turn = 'black';
+            console.log(this.my_turn);
+            return;
+          }
+          if (this.arr_room[i].user2 == this.userName) {
+            this.room_name = this.arr_room[i].room;
+            socket.emit('join_room_socket', this.room_name, this.userName);
+            this.get_room();
+            socket.emit('start_game_socket', this.room_name);
+            this.my_turn = 'white';
+            return;
+          }
+          if (confirm("Room is full!! Do you want to spectator?") == true) {
+            this.room_name = this.arr_room[i].room;
+            socket.emit('join_room_socket', this.room_name, this.userName);
+            this.get_room();
+            socket.emit('spect_socket', this.room_name);
             this.show_game = false;
             this.showTable = true;
             this.show_back = true;
           } else {
 
           }
+
+
         }
+
+
+      },
+      pass_create_room() {
+        socket.emit('create_room_socket', this.room_name, this.userName);
       },
       create_room() {
-        socket.emit('create_room_socket', this.room_name, this.userName);
         this.get_room();
         this.show_game = false;
         this.show_room = false;
@@ -372,22 +413,40 @@
         this.show_room = true;
         this.showRank = false;
       },
+      discon_func(userName) {
+        this.time = 30;
+        if (userName == this.userName) {
+          this.start_time();
+          this.show_time = true;
+        }
 
-
-
-
-      //new before create room
-      start_game(){
-        this.show_game = false;
-        this.showTable = true;
+        //this.leave_room();
       },
 
 
 
 
+      //new before create room
+      start_game() {
+        this.show_myRoom = false;
+        this.show_game = false;
+        this.showTable = true;
+      },
+      start_time() {
+        if (this.time == 0) {
+          socket.emit('win_wait',this.room_name, this.userName);
+          alert('you win');
+          this.leave_room();
+          this.pass_result();
+          return;
+        }
+        if (this.time == -1) {
 
-
-
+          return;
+        }
+        this.time--;
+        setTimeout(this.start_time, 1000);
+      },
 
 
 
@@ -506,7 +565,7 @@
 
       pass_click(i, j) {
         //console.log('pass_click');
-        socket.emit('click_socket', this.room_name, this.my_turn, i, j,);
+        socket.emit('click_socket', this.room_name, this.my_turn, i, j, );
       },
       render_func(table_state, turn) {
         if (turn == true) {

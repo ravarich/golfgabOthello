@@ -11,42 +11,29 @@
 
 <body>
   <div id="app">
-    <input v-model="msg"><button @click="save_func()">save</button><button @click="get_func()">get</button>
+    <p>{{message}}</p>
   </div>
 </body>
 
 </html>
 
 <script>
-
-
   new Vue({
-    el: '#app',
+    el: '#app', // กำหนดให้ Vue.js ทำงานใน id app
     data: {
-      msg: 0
+      message: 'text',
+      num: 0
+    },
+    created() {
+      this.message = 'Hello Vue.js';
     },
     mounted() {
-      this.msg = Date.now();
-      console.log(typeof this.msg);
+     this.double_func();
     },
     methods: {
-      save_func() {
-        var bcrypt = require('bcryptjs');
-        bcrypt.genSalt(10, function(err, salt) {
-          bcrypt.hash(this.msg, salt, function(err, hash) {
-            localStorage.setItem(hash, this.msg);
-          });
-        });
-      },
-      get_func() {
-        var x = localStorage.getItem("user2");
-        if (x == 'golfgolf') {
-          console.log('yes');
-        } else {
-          console.log('no');
-        }
+      double_func(base){
+        this.num = this.num * 2 ;
       }
-
     }
   });
 </script>

@@ -20,36 +20,115 @@ app.get('/', function(req, res) {
 
 var arr_room = [];
 
+
+
 io.sockets.on('connection', function(socket) {
   connections.push(socket);
   //console.log('Conneced: %s sockets connected', connections.length);
-  //suggest_func();
   pass_result();
 
   //Dissconnect
   socket.on('disconnect', function(data) {
     connections.splice(connections.indexOf(socket), 1);
     //console.log('Dissconnected: %s sockets connected', connections.length);
+
+
+    for (var i = 0; i < arr_room.length; i++) {
+      if (arr_room[i].id1 == socket.id) {
+        io.to(arr_room[i].room).emit('discon_socket', arr_room[i].user2);
+        leave_room(arr_room[i].room);
+      }else {
+        if (arr_room[i].id2 == socket.id) {
+          io.to(arr_room[i].room).emit('discon_socket', arr_room[i].user1);
+          leave_room(arr_room[i].room);
+        }
+      }
+
+    }
+
+
+    //บังคับแพ้เมื่อออก
+    // for (var i = 0; i < arr_room.length; i++) {
+    //   if (arr_room[i].id1 == socket.id && arr_room[i].user2 == '') {
+    //     clear_room(arr_room[i].room);
+    //     break;
+    //   }
+    //   if (i == arr_room.length - 1) {
+    //     for (var i = 0; i < arr_room.length; i++) {
+    //       if (arr_room[i].id1 == socket.id) {
+    //         io.to(arr_room[i].room).emit('discon_socket', 'P1 disconnection');
+    //         update_win(arr_room[i].user2);
+    //         update_lose(arr_room[i].user1);
+    //         clear_room(arr_room[i].room);
+    //         console.log('p1 discon');
+    //         break;
+    //       }
+    //       if (arr_room[i].id2 == socket.id) {
+    //         io.to(arr_room[i].room).emit('discon_socket', 'P2 disconnection');
+    //         update_win(arr_room[i].user1);
+    //         update_lose(arr_room[i].user2);
+    //         clear_room(arr_room[i].room);
+    //         console.log('p2 discon');
+    //         break;
+    //       }
+    //     }
+    //   }
+    // }
+
   });
 
   //-----------------------------------------------------------------------------------------------------------------------//
+  socket.on('win_wait', function(room,userName) {
+    for (var i = 0; i < arr_room.length; i++) {
+      if (arr_room[i].user1 == userName) {
+        update_win(arr_room[i].user1);
+        update_lose(arr_room[i].user2);
+        clear_room(arr_room[i].room);
+      }else {
+        update_win(arr_room[i].user2);
+        update_lose(arr_room[i].user1);
+        clear_room(arr_room[i].room);
+      }
+    }
+  });
+
+
+
 
   //room
   socket.on('leave_room_socket', function(room) {
     socket.leave(room);
     leave_room(room);
   });
-  socket.on('join_room_socket', function(room,userName) {
+  socket.on('join_room_socket', function(room, userName) {
     socket.join(room);
-    join_room(room,userName);
+    join_room(room, userName, socket.id);
   });
   socket.on('get_room_socket', function() {
     io.emit('get_room_socket', arr_room)
   });
-  socket.on('create_room_socket', function(room,userName) {
-    create_room(room);
-    socket.join(room);
-    join_room(room,userName);
+  socket.on('create_room_socket', function(room, userName) {
+    if (arr_room.length == 0) {
+      create_room(room);
+      socket.join(room);
+      join_room(room, userName, socket.id);
+      io.emit('create_room_socket', 'yes', userName);
+    } else {
+      for (var i = 0; i < arr_room.length; i++) {
+        if (arr_room[i].room == room) {
+          console.log('same room by', userName);
+          io.emit('create_room_socket', 'no', userName);
+          break;
+        }
+        if (i == arr_room.length - 1) {
+          create_room(room);
+          socket.join(room);
+          join_room(room, userName, socket.id);
+          io.emit('create_room_socket', 'yes', userName);
+          break;
+        }
+      }
+    }
   });
   socket.on('send', function(room, data) {
     console.log(room, data);
@@ -62,7 +141,9 @@ io.sockets.on('connection', function(socket) {
     suggest_func(room);
     io.to(room).emit('start_game_socket');
   });
-
+  socket.on('spect_socket', function(room) {
+    suggest_func(room);
+  });
 
 
 
@@ -140,61 +221,51 @@ var url = 'mongodb://localhost:27017/othello';
 //room
 
 function create_room(room) {
-  if (arr_room.length == 0) {
-    arr_room.push({
+  arr_room.push({
+    'room': room,
+    'count': 0,
+    'user1': '',
+    'id1': '',
+    'user2': '',
+    'id2': '',
+    'status': ''
+  });
+  MongoClient.connect(url, function(err, db) {
+    var insert = {
       'room': room,
-      'count': 0,
-      'user1': '',
-      'user2': ''
-    });
-    MongoClient.connect(url, function(err, db) {
-      var insert = {
-        'room': room,
-        'table': state,
-        'turn': true
-      }
-      db.collection("table").insertOne(insert, function(err, res) {
-        if (err) throw err;
-      });
-      db.close();
-    });
-  } else {
-    for (var i = 0;; i++) {
-      if (room == arr_room[i].room) {
-        break;
-      }
-      if (i == arr_room.length - 1) {
-        arr_room.push({
-          'room': room,
-          'count': 0,
-          'user1': '',
-          'user2': ''
-        });
-        MongoClient.connect(url, function(err, db) {
-          var insert = {
-            'room': room,
-            'table': state,
-            'turn': true
-          }
-          db.collection("table").insertOne(insert, function(err, res) {
-            if (err) throw err;
-          });
-          db.close();
-        });
-      }
+      'table': state,
+      'turn': true
     }
-  }
+    db.collection("table").insertOne(insert, function(err, res) {
+      if (err) throw err;
+    });
+    db.close();
+  });
 }
 
-function join_room(room,userName) {
+function join_room(room, userName, id) {
   for (var i = 0;; i++) {
     if (room == arr_room[i].room) {
       arr_room[i].count++;
-      if (arr_room[i].count == 1) {
-        arr_room[i].user1 = userName;
-      }
-      if (arr_room[i].count == 2) {
-        arr_room[i].user2 = userName;
+      if (arr_room[i].status == '') {
+        if (arr_room[i].count == 1) {
+          arr_room[i].user1 = userName;
+          arr_room[i].id1 = id;
+        }
+        if (arr_room[i].count == 2) {
+          arr_room[i].user2 = userName;
+          arr_room[i].id2 = id;
+          arr_room[i].status = 'started';
+        }
+      } else {
+        if (arr_room[i].user1 == userName) {
+          arr_room[i].id1 = id;
+          io.to(room).emit('reconnect_socket');
+        }
+        if (arr_room[i].user2 == userName) {
+          arr_room[i].id2 = id;
+          io.to(room).emit('reconnect_socket');
+        }
       }
       console.log(arr_room[i]);
       break;
@@ -204,7 +275,7 @@ function join_room(room,userName) {
 
 function leave_room(room) {
   console.log('leave room', room);
-  for (var i = 0;; i++) {
+  for (var i = 0; i < arr_room.length; i++) {
     if (room == arr_room[i].room) {
       arr_room[i].count--;
       if (arr_room[i].count == 0) {
@@ -227,6 +298,17 @@ function leave_room(room) {
 }
 
 
+clear_table();
+
+function clear_table() {
+  MongoClient.connect(url, function(err, db) {
+    if (err) throw err;
+    db.collection("table").remove({}, function(err, obj) {
+      if (err) throw err;
+      db.close
+    });
+  });
+}
 
 
 
@@ -313,40 +395,6 @@ function register_func(userName, password) {
   });
 }
 
-// function register_func(userName, password) {
-//   MongoClient.connect(url, function(err, db) {
-//     if (err) throw err;
-//     db.collection("user").find().toArray(function(err, result) {
-//       //console.log(result)
-//       for (var i = 0; i < result.length ; i++) {
-//         if (userName == result[i].userName) {
-//           io.emit('check_regis_socket', 'have same userName' , userName);
-//           break;
-//         }
-//         if (i == result.length-1) {
-//           const hash = crypto.createHmac('sha256', password)
-//             .update('I love cupcakes')
-//             .digest('hex');
-//           var insert = {
-//             userName: userName,
-//             password: hash,
-//             win: 0,
-//             lose: 0,
-//             score: 0
-//           };
-//           db.collection("user").insertOne(insert, function(err, res) {
-//             if (err) throw err;
-//             console.log("1 record inserted");
-//             db.close();
-//             io.emit('check_regis_socket', 'regis success' , userName);
-//           });
-//         }
-//       }
-//       db.close();
-//     });
-//   });
-// }
-
 function login_func(userName, password) {
   MongoClient.connect(url, function(err, db) {
     if (err) throw err;
@@ -365,7 +413,7 @@ function login_func(userName, password) {
         io.emit('login_socket', login, userName);
       } else {
         if (hash == result.password) {
-          console.log('correct');
+          console.log('login by', userName);
           login = 'correct';
           io.emit('login_socket', login, userName);
         } else {
@@ -380,35 +428,7 @@ function login_func(userName, password) {
   });
 }
 
-// function login_func(userName, password) {
-//   MongoClient.connect(url, function(err, db) {
-//     if (err) throw err;
-//     db.collection("user").find().toArray(function(err, result) {
-//       //console.log(result)
-//       var login = '';
-//       const hash = crypto.createHmac('sha256', password)
-//         .update('I love cupcakes')
-//         .digest('hex');
-//       for (var i = 0; i < result.length; i++) {
-//         if (userName == result[i].userName) {
-//           if (hash == result[i].password) {
-//             console.log('correct');
-//             login = 'correct';
-//             io.emit('login_socket', login, userName);
-//
-//             break;
-//           }
-//         }
-//         if (i == result.length - 1) {
-//           console.log('incorrect');
-//           login = 'incorrect';
-//           io.emit('login_socket', login, userName);
-//         }
-//       }
-//       db.close();
-//     });
-//   });
-// }
+
 
 //------------------------------------------------------------------------------PLAY------------------------------------------------------------------------------
 
@@ -531,7 +551,6 @@ function update_lose(user_loser) {
 
 
 
-//suggest_func('x2y');
 
 function suggest_func(room) {
   get_turn_and_table(room).then(function(res) {
@@ -576,12 +595,14 @@ function suggest_func(room) {
       }
       io.emit('winner_socket', win);
       pass_table_state(room, table_state, turn);
+      clear_room(room);
       return;
     }
+
+
     var space = check_space(table_state, checkTurn.suggest_color1);
     if (space == 1) {
       var win = check_winner(table_state);
-      console.log(win);
       for (var i = 0;; i++) {
         if (room == arr_room[i].room) {
           var user1 = arr_room[i].user1;
@@ -599,6 +620,7 @@ function suggest_func(room) {
       }
       io.emit('winner_socket', win);
       pass_table_state(room, table_state, turn);
+      clear_room(room);
       return;
     }
     var pass = check_pass(table_state, checkTurn.suggest_color1);
@@ -614,44 +636,6 @@ function suggest_func(room) {
   });
 }
 
-
-
-
-// count_winner_function = 0;
-
-// clear_suggest();
-// for (var i = 0; i < 8; i++) {
-//   for (var j = 0; j < 8; j++) {
-//     if (table_state[i][j] == turn_color1) {
-//       suggest_top(i, j);
-//       suggest_under(i, j);
-//       suggest_left(i, j);
-//       suggest_right(i, j);
-//       suggest_top_left(i, j);
-//       suggest_top_right(i, j);
-//       suggest_under_left(i, j);
-//       suggest_under_right(i, j);
-//     }
-//   }
-// }
-// check_space();
-// if (count_pass < 2) {
-//   check_pass();
-// }
-// pass_table_state();
-// if (count_winner_function == 1) {
-//   table_state = [
-//     ["green", "green", "green", "green", "green", "green", "green", "green"],
-//     ["green", "green", "green", "green", "green", "green", "green", "green"],
-//     ["green", "green", "green", "green", "green", "green", "green", "green"],
-//     ["green", "green", "green", "white", "black", "green", "green", "green"],
-//     ["green", "green", "green", "black", "white", "green", "green", "green"],
-//     ["green", "green", "green", "green", "green", "green", "green", "green"],
-//     ["green", "green", "green", "green", "green", "green", "green", "green"],
-//     ["green", "green", "green", "green", "green", "green", "green", "green"]
-//   ];
-//   arr_user = [];
-// }
 function check_pass(table_state, data) {
   for (var i = 0; i < 8; i++) {
     for (var j = 0; j < 8; j++) {
@@ -661,16 +645,30 @@ function check_pass(table_state, data) {
     }
   }
   return 1;
-  // if (count == 0) {
-  //   console.log("-------------pass-------------");
-  //   count_pass++;
-  //   if (count_pass == 2) {
-  //     check_winner();
-  //   }
-  //   turn = !turn;
-  //   suggest_func();
-  // }
 }
+
+function clear_room(room) {
+  for (var i = 0;; i++) {
+    if (room == arr_room[i].room) {
+      console.log('delete', arr_room[i].room);
+      arr_room.splice(i, 1);
+      MongoClient.connect(url, function(err, db) {
+        if (err) throw err;
+        var myquery = {
+          room: room
+        };
+        db.collection("table").deleteOne(myquery, function(err, obj) {
+          if (err) throw err;
+          console.log("deleted 1 room");
+          db.close
+        });
+      });
+    }
+    break;
+  }
+  io.emit('get_room_socket', arr_room);
+}
+
 
 function check_space(table_state, data) {
   for (var i = 0; i < 8; i++) {
@@ -682,6 +680,7 @@ function check_space(table_state, data) {
   }
   return 1;
 }
+
 function check_enemy(table_state, data) {
   for (var i = 0; i < 8; i++) {
     for (var j = 0; j < 8; j++) {
@@ -730,52 +729,7 @@ function check_winner(table_state) {
   return win;
 }
 
-//   count_winner_function++;
-//   var winner = '';
-//   var user_winner = '';
-//   var user_loser = '';
-//   var score_black = 0;
-//   var score_white = 0;
-//   for (var i = 0; i < 8; i++) {
-//     for (var j = 0; j < 8; j++) {
-//       if (table_state[i][j] == 'black') {
-//         score_black++;
-//       }
-//       if (table_state[i][j] == 'white') {
-//         score_white++;
-//       }
-//     }
-//   }
-//   if (score_black > score_white) {
-//     console.log(score_black);
-//     console.log(score_white);
-//     console.log('winner is black');
-//     user_winner = arr_user[0];
-//     user_loser = arr_user[1];
-//     winner = 'black';
-//     update_win(user_winner);
-//     update_lose(user_loser);
-//     io.emit('winner_socket', score_black, score_white, winner);
-//   }
-//   if (score_white > score_black) {
-//     console.log(score_black);
-//     console.log(score_white);
-//     console.log('winner is white');
-//     user_winner = arr_user[1];
-//     user_loser = arr_user[0];
-//     winner = 'white';
-//     update_win(user_winner);
-//     update_lose(user_loser);
-//     io.emit('winner_socket', score_black, score_white, winner);
-//   }
-//   if (score_black == score_white) {
-//     console.log(score_black);
-//     console.log(score_white);
-//     console.log('draw');
-//     winner = 'draw';
-//     io.emit('winner_socket', score_black, score_white, winner);
-//   }
-// }
+
 
 
 function clear_suggest(table_state, data) {
@@ -981,7 +935,6 @@ function kill_func(room, my_turn, i, j) {
     var table_state = res[0].table;
     var turn = res[0].turn;
     var checkTurn = check_turn_color(turn);
-    // console.log(table_state[i][j],checkTurn.suggest_color1,my_turn,checkTurn.turn_color1);
     if (table_state[i][j] == checkTurn.suggest_color1 && my_turn == checkTurn.turn_color1) {
       table_state = kill_top(i, j, table_state, checkTurn);
       table_state = kill_under(i, j, table_state, checkTurn);
