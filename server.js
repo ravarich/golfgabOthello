@@ -31,13 +31,11 @@ io.sockets.on('connection', function(socket) {
   socket.on('disconnect', function(data) {
     connections.splice(connections.indexOf(socket), 1);
     //console.log('Dissconnected: %s sockets connected', connections.length);
-
-
     for (var i = 0; i < arr_room.length; i++) {
       if (arr_room[i].id1 == socket.id) {
         io.to(arr_room[i].room).emit('discon_socket', arr_room[i].user2);
         leave_room(arr_room[i].room);
-      }else {
+      } else {
         if (arr_room[i].id2 == socket.id) {
           io.to(arr_room[i].room).emit('discon_socket', arr_room[i].user1);
           leave_room(arr_room[i].room);
@@ -78,13 +76,13 @@ io.sockets.on('connection', function(socket) {
   });
 
   //-----------------------------------------------------------------------------------------------------------------------//
-  socket.on('win_wait', function(room,userName) {
+  socket.on('win_wait', function(room, userName) {
     for (var i = 0; i < arr_room.length; i++) {
       if (arr_room[i].user1 == userName) {
         update_win(arr_room[i].user1);
         update_lose(arr_room[i].user2);
         clear_room(arr_room[i].room);
-      }else {
+      } else {
         update_win(arr_room[i].user2);
         update_lose(arr_room[i].user1);
         clear_room(arr_room[i].room);

@@ -565,7 +565,7 @@
 
       pass_click(i, j) {
         //console.log('pass_click');
-        socket.emit('click_socket', this.room_name, this.my_turn, i, j, );
+        socket.emit('click_socket', this.room_name, this.my_turn, i, j);
       },
       render_func(table_state, turn) {
         if (turn == true) {
