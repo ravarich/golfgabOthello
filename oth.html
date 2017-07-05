@@ -102,12 +102,12 @@
     <div v-if="show_login">
       <h2>LOGIN</h2>
       <label>Username:</label>
-      <input v-model="userName" class="form-control" placeholder="Enter username">
+      <input v-model="userName" class="form-control" placeholder="Enter username" maxlength="16">
       <label>Password:</label>
       <input type="password" v-model="password" class="form-control" placeholder="Enter password" @keyup.enter="pass_login()">
       <p></p>
-      <button class="btn btn-primary" @click="pass_login()">login</button>
-      <button class="btn btn-primary" @click="go_register()">register</button>
+      <button class="btn btn-primary" @click="pass_login()">login</button> or
+      <a href="#" @click="go_register()" data-toggle="tooltip">register</a>
     </div>
 
     <!-- <div v-if="show_login">
@@ -121,7 +121,7 @@
     <div v-if="show_register">
       <h2>REGISTER</h2>
       <label>Username:</label>
-      <input v-model="userName" class="form-control" placeholder="Enter username">
+      <input v-model="userName" class="form-control" placeholder="Enter username" maxlength="16">
       <label>Password:</label>
       <input type="password" v-model="password" class="form-control" placeholder="Enter password">
       <p></p>
@@ -147,7 +147,8 @@
     <div v-show="showTable">
       <h2>OTHELLO</h2>
       <div v-show='show_time'>
-        <p><h2>Wait for another player reconnect in : {{time}}<h2></p>
+        <p>
+          <h2>Wait for another player reconnect in : {{time}}<h2></p>
       </div>
       <h3>TURN : {{turn}}</h3>
       <table>
@@ -171,58 +172,58 @@
     </div>
     <div v-if="show_wait">
       <h2>WAIT FOR OTHER PLAYER</h2>
-      <p><button @click="pass_ex_wait()" class="btn btn-primary">back</button></p>
-    </div>
-    <div v-if="show_game">
-      <div class="btn-group btn-group-justified">
-        <a href="#" class="btn btn-primary" @click="pass_ranking()">Ranking</a>
-        <a href="#" class="btn btn-primary" @click="open_show_room">JoinGame</a>
-        <a href="#" class="btn btn-primary" @click="pass_logout()">Logout</a>
+          <p><button @click="pass_ex_wait()" class="btn btn-primary">back</button></p>
       </div>
-      <div v-if="show_room">
-        <h2>ROOM</h2>
-        <div v-for="(room, i) in arr_room" class="list-group">
-          <a class="list-group-item" @click="join_room(i)">{{room.room}}({{room.count}}/2)</a>
+      <div v-if="show_game">
+        <div class="btn-group btn-group-justified">
+          <a href="#" class="btn btn-primary" @click="ranking_func()">Ranking</a>
+          <a href="#" class="btn btn-primary" @click="open_show_room()">JoinGame</a>
+          <a href="#" class="btn btn-primary" @click="pass_logout()">Logout</a>
         </div>
-        <hr>
-        <input v-model="room_name" class="form-control">
-        <button class="btn btn-default" @click="pass_create_room()">create room</button>
-      </div>
-      <div v-show="showRank">
-        <h2>Ranking</h2>
-        <table class="table table-hover">
-          <thead>
-            <tr>
-              <th width="25%">Name</th>
-              <th width="25%">win</th>
-              <th width="25%">lose</th>
-              <th width="25%">score</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="msg in arr_msg">
-              <td>{{msg.userName}}</td>
-              <td>{{msg.win}}</td>
-              <td>{{msg.lose}}</td>
-              <td>{{msg.score}}</td>
-            </tr>
-          </tbody>
-        </table>
-        <!-- <p><button @click="showRank = false, show_game = true">back</button></p> -->
-      </div>
-      <!-- <p>>> hi {{userName}} <button @click="pass_logout()">logout</button></p>
+        <div v-if="show_room">
+          <h2>ROOM</h2>
+          <div v-for="(room, i) in arr_room" class="list-group">
+            <a class="list-group-item" @click="join_room(i)">{{room.room}}({{room.count}}/2)</a>
+          </div>
+          <hr>
+          <input v-model="room_name" class="form-control">
+          <button class="btn btn-default" @click="pass_create_room()">create room</button>
+        </div>
+        <div v-show="showRank">
+          <h2>Ranking</h2>
+          <table class="table table-hover">
+            <thead>
+              <tr>
+                <th width="25%">Name</th>
+                <th width="25%">win</th>
+                <th width="25%">lose</th>
+                <th width="25%">score</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="msg in arr_msg">
+                <td>{{msg.userName}}</td>
+                <td>{{msg.win}}</td>
+                <td>{{msg.lose}}</td>
+                <td>{{msg.score}}</td>
+              </tr>
+            </tbody>
+          </table>
+          <!-- <p><button @click="showRank = false, show_game = true">back</button></p> -->
+        </div>
+        <!-- <p>>> hi {{userName}} <button @click="pass_logout()">logout</button></p>
       <h1>SELECT GAME</h1>
       <p class="game" @click="pass_start">Othello</p>
       <p class="game">game2</p>
       <p class="game">game3</p>
       <p><button @click="pass_ranking()">ranking</button></p> -->
-    </div>
-    <div v-if="show_myRoom">
-      <h2>MY ROOM</h2>
-      <button class="btn btn-default" @click="leave_room()">leave room</button>
-    </div>
+      </div>
+      <div v-if="show_myRoom">
+        <h2>wait for another player</h2>
+        <button class="btn btn-default" @click="leave_room()">leave room</button>
+      </div>
 
-  </div>
+    </div>
 </body>
 
 </html>
@@ -434,10 +435,10 @@
       },
       start_time() {
         if (this.time == 0) {
-          socket.emit('win_wait',this.room_name, this.userName);
+          socket.emit('win_wait', this.room_name, this.userName);
           alert('you win');
           this.leave_room();
-          this.pass_result();
+          this.pass_ranking();
           return;
         }
         if (this.time == -1) {
@@ -456,11 +457,14 @@
 
 
       //login register
+      ranking_func() {
+        this.show_room = false;
+        this.showRank = true;
+        this.pass_ranking();
+      },
       pass_ranking() {
         socket.emit('result_socket', this.userName);
         //this.show_game = false;
-        this.show_room = false;
-        this.showRank = true;
       },
       pass_ex_wait() {
 
@@ -483,11 +487,15 @@
             alert(msg);
             this.show_register = false;
             this.pass_login();
+            this.pass_ranking();
           }
         }
+
       },
       pass_logout() {
         socket.emit('logout_socket', this.userName, 0);
+        this.leave_room();
+        this.showTable = false;
       },
       logout_func(userName, time) {
         if (this.userName == userName && time != this.time) {
@@ -496,6 +504,7 @@
           localStorage.clear();
           this.show_game = false;
           this.show_login = true;
+          this.showTable = false;
         }
       },
       check_login() {
@@ -596,6 +605,15 @@
         //render_func();
       },
       register_func() {
+        var n = this.userName.search(' ');
+        if (n != -1 || this.userName == '') {
+          alert('username have space');
+          return;
+        }
+        if (this.password == '') {
+          alert('please enter password');
+          return;
+        }
         socket.emit('register_socket', this.userName, this.password);
         //this.show_register = false;
         //this.show_login = true;

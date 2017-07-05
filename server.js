@@ -367,7 +367,6 @@ function register_func(userName, password) {
       userName: userName
     }
     db.collection("user").find(qry).toArray(function(err, result) {
-      console.log(result);
       if (result == '') {
         const hash = crypto.createHmac('sha256', password)
           .update('I love cupcakes')
@@ -381,7 +380,7 @@ function register_func(userName, password) {
         };
         db.collection("user").insertOne(insert, function(err, res) {
           if (err) throw err;
-          console.log("1 record inserted");
+          console.log("insert user :", userName);
           db.close();
           io.emit('check_regis_socket', 'regis success', userName);
         });
